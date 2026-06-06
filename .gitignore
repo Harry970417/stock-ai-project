@@ -1,0 +1,17 @@
+# 環境變數（含 Token / 密碼）
+backend/.env
+frontend/.env.local
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Node
+frontend/node_modules/
+frontend/.next/
+
+# 資料
+backend/watchlist.json

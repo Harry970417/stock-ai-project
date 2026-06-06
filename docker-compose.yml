@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+
+  backend:
+    build: ./backend
+    container_name: stock-ai-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env          # 複製 .env.example → .env 並填入 Token
+    environment:
+      - WATCHLIST_DIR=/app/data
+    volumes:
+      - watchlist_data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # 本機 Docker 模式：瀏覽器直接打 localhost:8000
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    container_name: stock-ai-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  watchlist_data:
