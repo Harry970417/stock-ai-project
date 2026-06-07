@@ -143,7 +143,7 @@ export default function WatchlistPage() {
   const fetchWatchlist = () => {
     setLoading(true);
     setError(null);
-    axios.get("${API_BASE}/api/watchlist/tomorrow")
+    axios.get(`${API_BASE}/api/watchlist/tomorrow`)
       .then((res) => setData(res.data))
       .catch(() => setError("無法載入觀察名單，請確認後端服務正常"))
       .finally(() => setLoading(false));
