@@ -19,7 +19,9 @@ def _line_token() -> str:
     return os.getenv("LINE_CHANNEL_ACCESS_TOKEN", "").strip()
 
 def _line_target() -> str:
-    return os.getenv("LINE_TARGET_ID", "").strip()
+    val = os.getenv("LINE_TARGET_ID", "")
+    logger.info(f"LINE_TARGET_ID raw={repr(val)}")
+    return val.strip()
 
 def _email_user() -> str:
     return os.getenv("EMAIL_USER", "").strip()
