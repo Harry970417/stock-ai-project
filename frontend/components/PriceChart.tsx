@@ -115,7 +115,7 @@ export default function PriceChart({ symbol }: Props) {
         .filter((p) => p.open != null && p.close != null)
     );
 
-    const addLine = (key: keyof AnalysisData, color: string, style = LineStyle.Solid, lw = 1) => {
+    const addLine = (key: keyof AnalysisData, color: string, style = LineStyle.Solid, lw: 1 | 2 | 3 | 4 = 1) => {
       const s = mainChart.addLineSeries({ color, lineWidth: lw, lineStyle: style, priceLineVisible: false, lastValueVisible: false });
       s.setData(toLine(data.dates, data[key] as (number | null)[]));
     };
