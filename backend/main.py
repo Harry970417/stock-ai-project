@@ -23,7 +23,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Stock AI API", version="1.0.0", lifespan=lifespan)
 
-_cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+_cors_origins = [
+    "http://localhost:3000",
+    "https://stock-ai-project-production.up.railway.app",
+]
+_extra = os.getenv("CORS_ORIGINS", "")
+if _extra:
+    _cors_origins += [o.strip() for o in _extra.split(",") if o.strip()]
 
 app.add_middleware(
     CORSMiddleware,
