@@ -30,9 +30,9 @@ def get_notify_config():
     """查詢目前通知設定（不顯示實際憑證）"""
     return {
         "line_messaging_api": {
-            "enabled":   bool(_line_token() and _line_target()),
+            "enabled":   bool(_line_token()),
             "token_set": bool(_line_token()),
-            "target_id": _line_target() or None,
+            "mode":      "broadcast",
         },
         "email": {"enabled": bool(_email_user() and _email_to()), "from": _email_user() or None, "to": _email_to() or None},
     }

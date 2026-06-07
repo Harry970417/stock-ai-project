@@ -12,7 +12,7 @@ load_dotenv()
 
 logger = logging.getLogger("notifier")
 
-LINE_PUSH_URL = "https://api.line.me/v2/bot/message/push"
+LINE_BROADCAST_URL = "https://api.line.me/v2/bot/message/broadcast"
 
 
 def _line_token() -> str:
@@ -52,8 +52,8 @@ async def notify_watchlist(stocks: list, date: str) -> dict:
 
     tasks, labels = [], []
 
-    if token and target:
-        tasks.append(_send_line_flex(stocks, date, token, target))
+    if token:
+        tasks.append(_send_line_broadcast(stocks, date, token))
         labels.append("line")
     if eu and ep and et:
         tasks.append(_send_email(stocks, date, eu, ep, et))
@@ -77,14 +77,11 @@ async def notify_watchlist(stocks: list, date: str) -> dict:
 
 # ── LINE Messaging API — Push + Flex Message ──────────────────────────────────
 
-async def _send_line_flex(stocks: list, date: str, token: str, target: str) -> None:
-    payload = {
-        "to": target,
-        "messages": [_build_flex_message(stocks, date)],
-    }
+async def _send_line_broadcast(stocks: list, date: str, token: str) -> None:
+    payload = {"messages": [_build_flex_message(stocks, date)]}
     async with httpx.AsyncClient(timeout=15) as client:
         resp = await client.post(
-            LINE_PUSH_URL,
+            LINE_BROADCAST_URL,
             headers={
                 "Authorization": f"Bearer {token}",
                 "Content-Type": "application/json",
@@ -92,7 +89,7 @@ async def _send_line_flex(stocks: list, date: str, token: str, target: str) -> N
             json=payload,
         )
         resp.raise_for_status()
-    logger.info(f"LINE Push Message 發送成功 → {target}")
+    logger.info("LINE Broadcast 發送成功")
 
 
 def _build_flex_message(stocks: list, date: str) -> dict:
