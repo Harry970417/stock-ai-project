@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from models.database import get_watchlist, save_watchlist
 from services.scheduler import get_schedule_status
-from services.notifier import notify_watchlist, LINE_CHANNEL_TOKEN, LINE_TARGET_ID, EMAIL_USER, EMAIL_TO
+from services.notifier import notify_watchlist, _line_token, _line_target, _email_user, _email_to
 
 router = APIRouter()
 
@@ -30,11 +30,11 @@ def get_notify_config():
     """查詢目前通知設定（不顯示實際憑證）"""
     return {
         "line_messaging_api": {
-            "enabled":   bool(LINE_CHANNEL_TOKEN and LINE_TARGET_ID),
-            "token_set": bool(LINE_CHANNEL_TOKEN),
-            "target_id": LINE_TARGET_ID or None,
+            "enabled":   bool(_line_token() and _line_target()),
+            "token_set": bool(_line_token()),
+            "target_id": _line_target() or None,
         },
-        "email":       {"enabled": bool(EMAIL_USER and EMAIL_TO), "from": EMAIL_USER or None, "to": EMAIL_TO or None},
+        "email": {"enabled": bool(_email_user() and _email_to()), "from": _email_user() or None, "to": _email_to() or None},
     }
 
 

@@ -12,18 +12,29 @@ load_dotenv()
 
 logger = logging.getLogger("notifier")
 
-# ── LINE Messaging API ────────────────────────────────────────────────────────
-LINE_CHANNEL_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN", "").strip()
-LINE_TARGET_ID     = os.getenv("LINE_TARGET_ID", "").strip()   # U... (User) 或 C... (Group)
-
 LINE_PUSH_URL = "https://api.line.me/v2/bot/message/push"
 
-# ── Email ─────────────────────────────────────────────────────────────────────
-EMAIL_HOST     = os.getenv("EMAIL_HOST", "smtp.gmail.com")
-EMAIL_PORT     = int(os.getenv("EMAIL_PORT", "587"))
-EMAIL_USER     = os.getenv("EMAIL_USER", "").strip()
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD", "").strip()
-EMAIL_TO       = os.getenv("EMAIL_TO", "").strip()
+
+def _line_token() -> str:
+    return os.getenv("LINE_CHANNEL_ACCESS_TOKEN", "").strip()
+
+def _line_target() -> str:
+    return os.getenv("LINE_TARGET_ID", "").strip()
+
+def _email_user() -> str:
+    return os.getenv("EMAIL_USER", "").strip()
+
+def _email_password() -> str:
+    return os.getenv("EMAIL_PASSWORD", "").strip()
+
+def _email_to() -> str:
+    return os.getenv("EMAIL_TO", "").strip()
+
+# 保留供 router 匯入（向後相容）
+LINE_CHANNEL_TOKEN = ""
+LINE_TARGET_ID     = ""
+EMAIL_USER         = ""
+EMAIL_TO           = ""
 
 
 # ── 主入口 ────────────────────────────────────────────────────────────────────
@@ -33,13 +44,19 @@ async def notify_watchlist(stocks: list, date: str) -> dict:
     if not stocks:
         return {"status": "skipped", "reason": "名單為空"}
 
+    token  = _line_token()
+    target = _line_target()
+    eu     = _email_user()
+    ep     = _email_password()
+    et     = _email_to()
+
     tasks, labels = [], []
 
-    if LINE_CHANNEL_TOKEN and LINE_TARGET_ID:
-        tasks.append(_send_line_flex(stocks, date))
+    if token and target:
+        tasks.append(_send_line_flex(stocks, date, token, target))
         labels.append("line")
-    if EMAIL_USER and EMAIL_PASSWORD and EMAIL_TO:
-        tasks.append(_send_email(stocks, date))
+    if eu and ep and et:
+        tasks.append(_send_email(stocks, date, eu, ep, et))
         labels.append("email")
 
     if not tasks:
@@ -60,22 +77,22 @@ async def notify_watchlist(stocks: list, date: str) -> dict:
 
 # ── LINE Messaging API — Push + Flex Message ──────────────────────────────────
 
-async def _send_line_flex(stocks: list, date: str) -> None:
+async def _send_line_flex(stocks: list, date: str, token: str, target: str) -> None:
     payload = {
-        "to": LINE_TARGET_ID,
+        "to": target,
         "messages": [_build_flex_message(stocks, date)],
     }
     async with httpx.AsyncClient(timeout=15) as client:
         resp = await client.post(
             LINE_PUSH_URL,
             headers={
-                "Authorization": f"Bearer {LINE_CHANNEL_TOKEN}",
+                "Authorization": f"Bearer {token}",
                 "Content-Type": "application/json",
             },
             json=payload,
         )
         resp.raise_for_status()
-    logger.info(f"LINE Push Message 發送成功 → {LINE_TARGET_ID}")
+    logger.info(f"LINE Push Message 發送成功 → {target}")
 
 
 def _build_flex_message(stocks: list, date: str) -> dict:
@@ -192,26 +209,28 @@ def _build_flex_message(stocks: list, date: str) -> dict:
 
 # ── Email ─────────────────────────────────────────────────────────────────────
 
-async def _send_email(stocks: list, date: str) -> None:
+async def _send_email(stocks: list, date: str, eu: str, ep: str, et: str) -> None:
     text_body = _build_text(stocks, date)
     html_body = _build_html(stocks, date)
-    await asyncio.to_thread(_send_email_sync, date, text_body, html_body)
+    await asyncio.to_thread(_send_email_sync, date, text_body, html_body, eu, ep, et)
 
 
-def _send_email_sync(date: str, text_body: str, html_body: str) -> None:
+def _send_email_sync(date: str, text_body: str, html_body: str, eu: str, ep: str, et: str) -> None:
+    host = os.getenv("EMAIL_HOST", "smtp.gmail.com")
+    port = int(os.getenv("EMAIL_PORT", "587"))
     msg = MIMEMultipart("alternative")
     msg["Subject"] = f"📊 隔日觀察名單 {date}"
-    msg["From"]    = EMAIL_USER
-    msg["To"]      = EMAIL_TO
+    msg["From"]    = eu
+    msg["To"]      = et
     msg.attach(MIMEText(text_body, "plain", "utf-8"))
     msg.attach(MIMEText(html_body, "html",  "utf-8"))
 
-    with smtplib.SMTP(EMAIL_HOST, EMAIL_PORT) as smtp:
+    with smtplib.SMTP(host, port) as smtp:
         smtp.ehlo()
         smtp.starttls()
-        smtp.login(EMAIL_USER, EMAIL_PASSWORD)
-        smtp.sendmail(EMAIL_USER, [t.strip() for t in EMAIL_TO.split(",")], msg.as_string())
-    logger.info(f"Email 發送成功 → {EMAIL_TO}")
+        smtp.login(eu, ep)
+        smtp.sendmail(eu, [t.strip() for t in et.split(",")], msg.as_string())
+    logger.info(f"Email 發送成功 → {et}")
 
 
 # ── 文字格式（Email 純文字備用 & log）────────────────────────────────────────
